@@ -147,7 +147,7 @@ func main() {
 	specificFlag := flag.Int("n", 0, "Download a specific comic")
 	flag.Parse()
 
-	if flag.NFlag() < 1 {
+	if flag.NFlag() < 1 || (flag.NFlag() == 1 && *dirFlag != "") {
 		saveAllComics(dirFlag)
 	} else if *allFlag {
 		saveAllComics(dirFlag)

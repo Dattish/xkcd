@@ -3,7 +3,7 @@ A wrapper for [xkcds api](https://xkcd.com/json.html) along with some functions 
 Comes with a program that fetches xkcd comics.
 
 ### xkcd-downloader
-If no flags are passed the program will default to downloading all comics  
+If no flags are passed or if only the -d flag is passed the program will default to downloading all comics  
 flags:
 ```bash
 -a	Download all comics
