@@ -2,12 +2,12 @@ package main
 
 import (
 	"dattri.eu/xkcd"
+	"flag"
+	"fmt"
+	"log"
 	"os"
 	"strings"
-	"log"
-	"fmt"
 	"time"
-	"flag"
 )
 
 func getComic(comicNumber int, retrieved chan *xkcd.ComicData, fail chan int) {
@@ -29,7 +29,7 @@ func saveComic(comicData *xkcd.ComicData, prefix string, success chan int, fail 
 	}
 }
 
-func getAllComics(numberOfComics int, prefix string) ([]int) {
+func getAllComics(numberOfComics int, prefix string) []int {
 	formattedPrefix := prefix
 	if !strings.HasSuffix(formattedPrefix, "/") {
 		formattedPrefix = formattedPrefix + "/"
@@ -95,7 +95,7 @@ func saveAllComics(dirFlag *string) {
 	if len(fails) > 0 {
 		fmt.Println(
 			"Note that some comics such as https://www.xkcd.com/1663/ cannot be downloaded this way" +
-			"\ndue to their json not pointing at an image. These are usually interactive comics.")
+				"\ndue to their json not pointing at an image. These are usually interactive comics.")
 	}
 }
 
