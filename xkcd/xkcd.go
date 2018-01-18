@@ -74,6 +74,10 @@ func SaveComicImage(url string, prefix string, filename string) error {
 		return &ResponseError{response.Status, response.StatusCode}
 	}
 
+	if _, err := os.Stat(filePath); err == nil {
+		return errors.New("comic already exists")
+	}
+
 	file, fileErr := os.Create(filePath)
 	defer file.Close()
 	if fileErr != nil {

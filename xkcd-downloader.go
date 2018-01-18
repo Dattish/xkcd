@@ -7,6 +7,7 @@ import (
 	"log"
 	"fmt"
 	"time"
+	"flag"
 )
 
 func getComic(comicNumber int, retrieved chan *xkcd.ComicData, fail chan int) {
@@ -19,12 +20,13 @@ func getComic(comicNumber int, retrieved chan *xkcd.ComicData, fail chan int) {
 	}
 }
 
-func saveComic(comicData *xkcd.ComicData, prefix string, notifier chan int, fail chan int) {
+func saveComic(comicData *xkcd.ComicData, prefix string, success chan int, fail chan int) {
 	err := comicData.SaveComicImage(prefix)
 	if err != nil {
 		fail <- comicData.Num
+	} else {
+		success <- comicData.Num
 	}
-	notifier <- 1
 }
 
 func getAllComics(numberOfComics int, prefix string) ([]int) {
@@ -40,25 +42,26 @@ func getAllComics(numberOfComics int, prefix string) ([]int) {
 	}
 
 	fails := make([]int, 0)
-	notifier := make(chan int)
-	saves := 0
-	for counter := 0 ; counter < numberOfComics; {
+	comicsToSave := 0
+	saveSuccess := make(chan int)
+	saveFailure := make(chan int)
+	for counter := 0; counter < numberOfComics; {
 		select {
 		case comicData := <-retrieved:
-			go saveComic(comicData, formattedPrefix, notifier, fail)
+			go saveComic(comicData, formattedPrefix, saveSuccess, saveFailure)
 			counter++
-			saves++
+			comicsToSave++
 		case failedComic := <-fail:
 			fails = append(fails, failedComic)
 			counter++
 		}
 	}
 
-	for counter := 0; counter < saves; {
+	for counter := 0; counter < comicsToSave; {
 		select {
-		case <-notifier:
+		case <-saveSuccess:
 			counter++
-		case failedComic := <-fail:
+		case failedComic := <-saveFailure:
 			fails = append(fails, failedComic)
 			counter++
 		default:
@@ -69,22 +72,89 @@ func getAllComics(numberOfComics int, prefix string) ([]int) {
 	return fails
 }
 
-func main() {
+func saveAllComics(dirFlag *string) {
 	comicData, cdErr := xkcd.GetLatestComicData()
 	if cdErr != nil {
 		log.Fatal(cdErr)
 	}
 	numberOfComics := comicData.Num
-
-	directory := "images"
+	if *dirFlag == "" {
+		*dirFlag = "images"
+	}
+	directory := *dirFlag
 	dirErr := os.Mkdir(directory, 0777)
 	if dirErr != nil && !os.IsExist(dirErr) {
 		log.Fatal(dirErr)
 	}
-	fmt.Printf("Attempting to fetch %v comics.\n",numberOfComics)
+	fmt.Printf("Attempting to fetch %v comics.\n", numberOfComics)
 	fails := getAllComics(numberOfComics, directory)
 	for _, failure := range fails {
 		fmt.Printf("Failed to fetch no. %d\n", failure)
 	}
-	fmt.Printf("Done, successfully fetched %d comics.\n", numberOfComics - len(fails))
+	fmt.Printf("Done, successfully fetched %d comics.\n", numberOfComics-len(fails))
+	if len(fails) > 0 {
+		fmt.Println(
+			"Note that some comics such as https://www.xkcd.com/1663/ cannot be downloaded this way" +
+			"\ndue to their json not pointing at an image. These are usually interactive comics.")
+	}
+}
+
+func saveLatestComic(dirFlag *string) {
+	mkDirIfNeeded(dirFlag)
+	comicData, cdErr := xkcd.GetLatestComicData()
+	fmt.Println("Latest comic is no.", comicData.Num)
+	if cdErr != nil {
+		log.Fatal(cdErr)
+	}
+	err := comicData.SaveComicImage(*dirFlag)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Successfully fetched no.", comicData.Num)
+}
+
+func saveSpecificComic(dirFlag *string, specificFlag *int) {
+	mkDirIfNeeded(dirFlag)
+
+	fmt.Println("Fetching comic no.", *specificFlag)
+	comicData, cdErr := xkcd.GetComicData(*specificFlag)
+	if cdErr != nil {
+		log.Fatal(cdErr)
+	}
+	err := comicData.SaveComicImage(*dirFlag)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Successfully fetched no.", comicData.Num)
+}
+func mkDirIfNeeded(dirFlag *string) {
+	if *dirFlag != "" {
+		dirErr := os.Mkdir(*dirFlag, 0777)
+		if dirErr != nil && !os.IsExist(dirErr) {
+			log.Fatal(dirErr)
+		}
+		if !strings.HasSuffix(*dirFlag, "/") {
+			*dirFlag = *dirFlag + "/"
+		}
+	}
+}
+
+func main() {
+
+	allFlag := flag.Bool("a", false, "Download all comics")
+	dirFlag := flag.String("d", "", "Set the directory to download the comic[s] to")
+	latestFlag := flag.Bool("l", false, "Download the latest comic")
+	specificFlag := flag.Int("n", 0, "Download a specific comic")
+	flag.Parse()
+
+	if flag.NFlag() < 1 {
+		saveAllComics(dirFlag)
+	} else if *allFlag {
+		saveAllComics(dirFlag)
+	} else if *latestFlag {
+		saveLatestComic(dirFlag)
+	} else if *specificFlag > 0 {
+		saveSpecificComic(dirFlag, specificFlag)
+	}
+
 }
