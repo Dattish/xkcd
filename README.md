@@ -9,7 +9,7 @@ flags:
 -a	Download all comics
   
 -d string
-    	Set the directory to download the comic[s] to
+    	Set the directory to download the comic(s) to
     	
 -l	Download the latest comic
   
