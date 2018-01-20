@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
+	"sync"
 )
 
 func getComic(comicNumber int, retrieved chan *xkcd.ComicData, fail chan int) {
@@ -17,15 +17,6 @@ func getComic(comicNumber int, retrieved chan *xkcd.ComicData, fail chan int) {
 		fail <- comicNumber
 	} else {
 		retrieved <- comicData
-	}
-}
-
-func saveComic(comicData *xkcd.ComicData, prefix string, success chan int, fail chan int) {
-	err := comicData.SaveComicImage(prefix)
-	if err != nil {
-		fail <- comicData.Num
-	} else {
-		success <- comicData.Num
 	}
 }
 
@@ -42,32 +33,25 @@ func getAllComics(numberOfComics int, prefix string) []int {
 	}
 
 	fails := make([]int, 0)
-	comicsToSave := 0
-	saveSuccess := make(chan int)
-	saveFailure := make(chan int)
+	saves := sync.WaitGroup{}
 	for counter := 0; counter < numberOfComics; {
 		select {
 		case comicData := <-retrieved:
-			go saveComic(comicData, formattedPrefix, saveSuccess, saveFailure)
-			counter++
-			comicsToSave++
+			saves.Add(1)
+			go func(comicData *xkcd.ComicData, prefix string) {
+				defer saves.Done()
+				err := comicData.SaveComicImage(prefix)
+				if err != nil {
+					fails = append(fails, comicData.Num)
+				}
+			}(comicData, formattedPrefix)
 		case failedComic := <-fail:
 			fails = append(fails, failedComic)
-			counter++
 		}
+		counter++
 	}
 
-	for counter := 0; counter < comicsToSave; {
-		select {
-		case <-saveSuccess:
-			counter++
-		case failedComic := <-saveFailure:
-			fails = append(fails, failedComic)
-			counter++
-		default:
-			time.Sleep(50 * time.Millisecond)
-		}
-	}
+	saves.Wait()
 
 	return fails
 }

@@ -1,12 +1,12 @@
 package xkcd
 
 import (
-	"net/http"
 	"encoding/json"
-	"fmt"
-	"os"
-	"io"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
 )
 
 type ComicData struct {
@@ -70,7 +70,7 @@ func SaveComicImage(url string, prefix string, filename string) error {
 		return responseErr
 	}
 	defer response.Body.Close()
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
+	if response.StatusCode != 200 {
 		return &ResponseError{response.Status, response.StatusCode}
 	}
 
