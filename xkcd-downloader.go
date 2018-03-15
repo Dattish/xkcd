@@ -1,7 +1,7 @@
-package main
+package dattish
 
 import (
-	"dattri.eu/xkcd"
+	"github.com/dattish/xkcd"
 	"flag"
 	"fmt"
 	"log"
