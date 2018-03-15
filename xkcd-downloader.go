@@ -1,7 +1,7 @@
-package dattish
+package main
 
 import (
-	"github.com/dattish/xkcd"
+	"github.com/dattish/xkcd-wrapper/xkcd"
 	"flag"
 	"fmt"
 	"log"
