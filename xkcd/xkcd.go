@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 )
@@ -75,7 +76,8 @@ func SaveComicImage(url string, prefix string, filename string) error {
 	}
 
 	if _, err := os.Stat(filePath); err == nil {
-		return errors.New("comic already exists")
+		log.Printf("%s already exists.", filePath)
+		return nil
 	}
 
 	file, fileErr := os.Create(filePath)
